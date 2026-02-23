@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @map("_id") @default(auto()) @db.ObjectId
+  name         String
+  email        String       @unique
+  passwordHash String?
+  provider     String       @default("email")
+  providerId   String?
+  avatarUrl    String?
+  workExperiences Json?
+  educations   Json?
+  profileCertificates Json?
+  role         String       @default("student")
+  createdAt    DateTime?    @default(now())
+  updatedAt    DateTime?    @updatedAt
+  courses      Course[]     @relation("InstructorCourses")
+  enrollments  Enrollment[]
+  reviews      Review[]
+  submissions  Submission[]
+  certificates Certificate[]
+  notifications Notification[]
+  recentViews   RecentView[]
+}
+
+model LessonProgress {
+  id           String     @id @map("_id") @default(auto()) @db.ObjectId
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  enrollmentId String     @db.ObjectId
+  lesson       Lesson     @relation(fields: [lessonId], references: [id])
+  lessonId     String     @db.ObjectId
+  completed    Boolean    @default(false)
+  lastPlayed   Int        @default(0) // Seconds watched
+  passed       Boolean?
+  score        Float?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([enrollmentId, lessonId])
+}
+
+model Course {
+  id           String       @id @map("_id") @default(auto()) @db.ObjectId
+  title        String
+  subtitle     String?
+  description  String
+  outcomes     String?
+  category     String?
+  difficulty   String?      @default("Beginner")
+  language     String?      @default("English")
+  skills       String[]     @default([])
+  durationMinutes Int?
+  thumbnail    String?
+  price        Float        @default(0)
+  status       String       @default("Draft") // "Draft" | "Published"
+  instructor   User         @relation(fields: [instructorId], references: [id], name: "InstructorCourses")
+  instructorId String       @db.ObjectId
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  modules      Module[]
+  enrollments  Enrollment[]
+  reviews      Review[]
+  assessments  Assessment[]
+  certificates Certificate[]
+  recentViews  RecentView[]
+}
+
+model Module {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  title     String
+  order     Int
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  String   @db.ObjectId
+  lessons   Lesson[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum LessonType {
+  VIDEO
+  READING
+  ASSESSMENT
+}
+
+enum NotificationType {
+  ENROLLMENT
+  COURSE_COMPLETED
+  CERTIFICATE_READY
+  GENERAL
+}
+
+model Lesson {
+  id        String     @id @map("_id") @default(auto()) @db.ObjectId
+  title     String
+  type      LessonType @default(VIDEO)
+  description String?
+  content   String?
+  videoUrl  String?
+  duration  Int?     // in seconds
+  order     Int
+  module    Module   @relation(fields: [moduleId], references: [id])
+  moduleId  String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lessonProgress LessonProgress[]
+  transcript     TranscriptLine[]
+}
+
+model TranscriptLine {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId  String   @db.ObjectId
+  startTime Float    // Start time in seconds
+  endTime   Float    // End time in seconds
+  text      String
+  order     Int      // To ensure correct sequence
+  createdAt DateTime @default(now())
+}
+
+model Enrollment {
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @db.ObjectId
+  course      Course   @relation(fields: [courseId], references: [id])
+  courseId    String   @db.ObjectId
+  progress    Int      @default(0) // Percentage or count of lessons completed
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  lastAccessed DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lessonProgress LessonProgress[]
+}
+
+model Certificate {
+  id               String   @id @map("_id") @default(auto()) @db.ObjectId
+  user             User     @relation(fields: [userId], references: [id])
+  userId           String   @db.ObjectId
+  course           Course   @relation(fields: [courseId], references: [id])
+  courseId         String   @db.ObjectId
+  issuedAt         DateTime @default(now())
+  certificateNumber String  @unique
+  verificationCode String   @unique
+  pdfUrl           String?
+  imageUrl         String?
+  pdfPublicId      String?
+  imagePublicId    String?
+  learnerName      String
+  courseTitle      String
+  partnerName      String?
+  grade            Float?
+  durationHours    Float?
+  durationMinutes  Int?
+  verifiedIdentity Boolean  @default(false)
+  revokedAt        DateTime?
+
+  @@unique([userId, courseId])
+}
+
+model Notification {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  type      NotificationType
+  title     String
+  message   String
+  link      String
+  imageUrl  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+}
+
+model Review {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  String   @db.ObjectId
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model Assessment {
+  id        String     @id @map("_id") @default(auto()) @db.ObjectId
+  title     String
+  course    Course     @relation(fields: [courseId], references: [id])
+  courseId  String     @db.ObjectId
+  questions Question[]
+  submissions Submission[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Question {
+  id           String     @id @map("_id") @default(auto()) @db.ObjectId
+  text         String
+  options      String[]
+  correctIndex Int
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  assessmentId String     @db.ObjectId
+}
+
+model Submission {
+  id           String     @id @map("_id") @default(auto()) @db.ObjectId
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String     @db.ObjectId
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  assessmentId String     @db.ObjectId
+  score        Int
+  passed       Boolean
+  createdAt    DateTime   @default(now())
+}
+
+model RecentView {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  String   @db.ObjectId
+  viewedAt  DateTime @default(now())
+
+  @@unique([userId, courseId])
+}
