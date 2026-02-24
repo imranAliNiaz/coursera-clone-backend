@@ -1,6 +1,5 @@
 const getEnv = (key: string, defaultValue: string = ""): string => {
   const value = process.env[key] || defaultValue;
-  // Remove possible literal quotes (occurs sometimes in Railway/Docker envs)
   return value.replace(/^["']|["']$/g, "");
 };
 
