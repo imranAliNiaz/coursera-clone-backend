@@ -66,7 +66,7 @@ router.post(
 
 router.get("/recently-viewed", authMiddleware, getRecentlyViewedCourses);
 router.get("/recommendations", authMiddleware, getRecommendedCourses);
-router.get("/:id", authMiddleware, getCourseById);
+router.get("/:id", getCourseById);
 router.get("/:id/enrollment-status", authMiddleware, getEnrollmentStatus);
 
 export default router;
