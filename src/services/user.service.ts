@@ -53,6 +53,12 @@ export const getAllUsers = async (page = 1, limit = 10, role?: string) => {
         avatarUrl: true,
         provider: true,
         createdAt: true,
+        _count: {
+          select: {
+            courses: true,
+            enrollments: true,
+          },
+        },
       },
     }),
     prisma.user.count({ where }),
@@ -83,6 +89,12 @@ export const getUserById = async (id: string) => {
       educations: true,
       profileCertificates: true,
       createdAt: true,
+      _count: {
+        select: {
+          courses: true,
+          enrollments: true,
+        },
+      },
     },
   });
 
