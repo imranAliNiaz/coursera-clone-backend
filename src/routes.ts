@@ -13,6 +13,7 @@ import notificationRoutes from "./routes/notification.routes";
 const router = Router();
 
 router.use("/api/v1/auth", authRoutes);
+router.use("/api/v1", authRoutes); // Added this line
 router.use("/api/v1/users", userRoutes);
 router.use("/api/v1/courses", courseRoutes);
 router.use("/api/v1/enrollments", enrollmentRoutes);
